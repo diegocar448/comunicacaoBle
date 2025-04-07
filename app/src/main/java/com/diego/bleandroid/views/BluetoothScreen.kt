@@ -25,18 +25,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 
-
 @Composable
 fun BluetoothScreen(viewModel: BluetoothViewModel) {
     val context = LocalContext.current
     val devices by viewModel.devices.collectAsState()
 
+
+
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Button(onClick = { viewModel.enableBluetooth(context) }) {
-            Text("Ativar Bluetooth")
-        }
+//        Button(onClick = { viewModel.enableBluetooth(context) }) {
+//            Text("Ativar Bluetooth")
+//        }
         Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = { viewModel.startScan() }) {
+        Button(
+            onClick = {
+                viewModel.startScan()
+            }
+        ) {
             Text("Buscar Dispositivos")
         }
         Spacer(modifier = Modifier.height(8.dp))

@@ -1,7 +1,7 @@
 package com.diego.bleandroid.mvvm
 
+import android.Manifest
 import android.app.Application
-import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.Context
@@ -17,6 +17,11 @@ import android.bluetooth.BluetoothManager
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
+
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
+
 
 
 class BluetoothViewModel(application: Application) : AndroidViewModel(application) {
@@ -60,35 +65,41 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    //scanear e iniciar
+    //Ei, você está chamando algo que precisa de permissão, mas não verificou se o usuário já concedeu
+    //A partir do Android 12 (API 31), exigem permissão BLUETOOTH_SCAN em tempo de execução
     fun startScan() {
-        stopScan() // para qualquer scan em andamento
+        val context = getApplication<Application>().applicationContext
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val hasPermission = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.BLUETOOTH_SCAN
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (!hasPermission) {
+                Toast.makeText(context, "Permissão de scan Bluetooth não concedida", Toast.LENGTH_SHORT).show()
+                return
+            }
+        }
+
+        stopScan()
         scannedDevices.clear()
         _devices.value = emptyList()
         scanner?.startScan(scanCallback)
         isScanning = true
-        println("StartScan AQUI")
     }
 
 
+    //para de scanear
     fun stopScan() {
         if (isScanning) {
-            println("StopScan FDP")
             scanner?.stopScan(scanCallback)
             isScanning = false
         }
-
     }
 
 
-//    fun startScan() {
-//        scannedDevices.clear()
-//        _devices.value = emptyList()
-//        scanner?.startScan(scanCallback)
-//    }
 
-//    fun stopScan() {
-//        scanner?.stopScan(scanCallback)
-//    }
 }
 
