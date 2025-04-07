@@ -1,6 +1,7 @@
 package com.diego.bleandroid.mvvm
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Application
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
@@ -20,8 +21,9 @@ import android.bluetooth.le.ScanResult
 
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.annotation.RequiresPermission
 import androidx.core.content.ContextCompat
-
+import com.diego.bleandroid.utils.PermissionHelper
 
 
 class BluetoothViewModel(application: Application) : AndroidViewModel(application) {
@@ -68,19 +70,13 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
     //scanear e iniciar
     //Ei, você está chamando algo que precisa de permissão, mas não verificou se o usuário já concedeu
     //A partir do Android 12 (API 31), exigem permissão BLUETOOTH_SCAN em tempo de execução
+    @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     fun startScan() {
         val context = getApplication<Application>().applicationContext
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val hasPermission = ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.BLUETOOTH_SCAN
-            ) == PackageManager.PERMISSION_GRANTED
-
-            if (!hasPermission) {
-                Toast.makeText(context, "Permissão de scan Bluetooth não concedida", Toast.LENGTH_SHORT).show()
-                return
-            }
+        if (!PermissionHelper.hasBluetoothScanPermission(context)) {
+            Toast.makeText(context, "Permissão de scan Bluetooth não concedida", Toast.LENGTH_SHORT).show()
+            return
         }
 
         stopScan()
@@ -91,12 +87,31 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
 
+
     //para de scanear
+    @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     fun stopScan() {
+        val context = getApplication<Application>().applicationContext
+
+        if (!PermissionHelper.hasBluetoothScanPermission(context)) {
+            Toast.makeText(context, "Permissão de scan Bluetooth não concedida", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         if (isScanning) {
             scanner?.stopScan(scanCallback)
             isScanning = false
         }
+    }
+
+
+    private fun hasScanPermission(context: Context): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.BLUETOOTH_SCAN
+            ) == PackageManager.PERMISSION_GRANTED
+        } else true
     }
 
 
