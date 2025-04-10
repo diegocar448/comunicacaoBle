@@ -23,8 +23,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
+
 
 
 class BluetoothViewModel(application: Application) : AndroidViewModel(application) {
@@ -140,4 +140,25 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
 
         }
     }
+
+    @SuppressLint("MissingPermission")
+    fun connectToDevice(device: BluetoothDevice) {
+        val context = getApplication<Application>().applicationContext
+
+        // Aqui você pode iniciar sua conexão BLE real futuramente
+        Toast.makeText(context, "Conectando com ${device.name ?: "Desconhecido"}", Toast.LENGTH_SHORT).show()
+
+        // Simula reconexão (ativa o isConnecting, se estiver usando)
+        _isConnecting.value = true
+
+        // Simulação: espera 2s e finaliza
+        CoroutineScope(Dispatchers.Main).launch {
+            delay(2000) // simula o tempo de conexão
+            _isConnecting.value = false
+            saveConnectedDevice(device)
+            Toast.makeText(context, "Conectado com ${device.name ?: "Desconhecido"}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
 }

@@ -29,6 +29,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 
@@ -106,7 +107,10 @@ fun BluetoothScreen(viewModel: BluetoothViewModel) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 4.dp),
+                        .padding(horizontal = 4.dp)
+                        .clickable {
+                            viewModel.connectToDevice(device)
+                        },
                     colors = CardDefaults.cardColors(
                         containerColor = Color(0xFFE0F7FA)
                     ),
