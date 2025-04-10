@@ -7,6 +7,8 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
+import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.bluetooth.le.BluetoothLeScanner
@@ -27,7 +29,7 @@ import kotlinx.coroutines.flow.StateFlow
 
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.*
-
+import java.util.UUID
 
 
 class BluetoothViewModel(application: Application) : AndroidViewModel(application) {
@@ -48,6 +50,12 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
 
     private val _connectionStatus = MutableStateFlow<String>("")
     val connectionStatus: StateFlow<String> = _connectionStatus
+
+    private val _services = MutableStateFlow<List<BluetoothGattService>>(emptyList())
+    val services: StateFlow<List<BluetoothGattService>> = _services
+
+    private var currentGatt: BluetoothGatt? = null // Para manter a referência do GATT ativo
+
 
 
     private val scanCallback = object : ScanCallback() {
@@ -177,16 +185,30 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
             }
 
             override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
-                if (status == BluetoothGatt.GATT_SUCCESS) {
-                    _connectionStatus.value = "Serviços descobertos com sucesso!"
-                    // Aqui você pode navegar pelos serviços/características
+                if (status == BluetoothGatt.GATT_SUCCESS && gatt != null) {
+                    //Aqui você pode navegar pelos serviços/características
+                    val discoveredServices = gatt.services
+                    _services.value = discoveredServices
+                    _connectionStatus.value = "Serviços descobertos com sucesso! Encontrados: ${discoveredServices.size}"
+                    currentGatt = gatt // salva o gatt ativo
                 } else {
                     _connectionStatus.value = "Erro ao descobrir serviços"
                 }
             }
+
+
+
         })
 
 
+    }
+
+    fun getCharacteristicsForService(service: BluetoothGattService): List<BluetoothGattCharacteristic> {
+        return service.characteristics
+    }
+
+    fun getCharacteristicsForServiceByUuid(uuid: UUID): List<BluetoothGattCharacteristic> {
+        return _services.value.firstOrNull { it.uuid == uuid }?.characteristics ?: emptyList()
     }
 
 
