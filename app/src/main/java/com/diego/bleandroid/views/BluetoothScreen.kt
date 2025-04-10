@@ -36,8 +36,12 @@ import androidx.compose.runtime.*
 fun BluetoothScreen(viewModel: BluetoothViewModel) {
     val context = LocalContext.current
     val devices by viewModel.devices.collectAsState()
+    val isConnecting by viewModel.isConnecting.collectAsState()
 
-    // Launcher para solicitar permissões
+    LaunchedEffect(Unit) {
+        viewModel.tryReconnectLastDevice()
+    }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
@@ -46,18 +50,31 @@ fun BluetoothScreen(viewModel: BluetoothViewModel) {
         }
     }
 
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .padding(16.dp)) {
 
+        // 🔄 Indicador de reconexão
+        if (isConnecting) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                CircularProgressIndicator()
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Reconectando...", modifier = Modifier.alignByBaseline())
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Spacer(modifier = Modifier.height(8.dp))
+        // Botões de ação
         Button(
+            enabled = !isConnecting,
             onClick = {
                 when {
-                    // Verifica se a permissão já foi concedida
                     context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED -> {
                         viewModel.startScan()
                     }
-                    // Caso contrário, solicita a permissão
                     else -> {
                         permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                     }
@@ -66,13 +83,23 @@ fun BluetoothScreen(viewModel: BluetoothViewModel) {
         ) {
             Text("Buscar Dispositivos")
         }
+
         Spacer(modifier = Modifier.height(8.dp))
+
         Button(onClick = { viewModel.stopScan() }) {
             Text("Parar Busca")
         }
+
+        if (devices.isEmpty() && !isConnecting) {
+            Text("Nenhum dispositivo encontrado", color = Color.Gray)
+        }
+
+
         Spacer(modifier = Modifier.height(16.dp))
+
+        // Lista de dispositivos encontrados
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(devices) { device ->
@@ -88,7 +115,6 @@ fun BluetoothScreen(viewModel: BluetoothViewModel) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = device.name ?: "Dispositivo Desconhecido",
-                            //style = MaterialTheme.typography.titleMedium,
                             color = Color.Gray,
                             fontWeight = FontWeight.Bold
                         )
@@ -102,8 +128,8 @@ fun BluetoothScreen(viewModel: BluetoothViewModel) {
                 }
             }
         }
-
     }
 }
+
 
 

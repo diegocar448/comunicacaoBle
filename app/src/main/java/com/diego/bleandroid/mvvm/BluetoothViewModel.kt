@@ -5,25 +5,26 @@ import android.annotation.SuppressLint
 import android.app.Application
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
-import android.content.Context
-import android.content.Intent
-import android.widget.Toast
-import androidx.lifecycle.AndroidViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-
-
-
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
-
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.widget.Toast
 import androidx.annotation.RequiresPermission
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.AndroidViewModel
 import com.diego.bleandroid.utils.PermissionHelper
+import com.diego.bleandroid.storage.BluetoothStorage
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 
 class BluetoothViewModel(application: Application) : AndroidViewModel(application) {
@@ -39,6 +40,8 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
 
     private var isScanning = false
 
+    private val _isConnecting = MutableStateFlow(false)
+    val isConnecting: StateFlow<Boolean> = _isConnecting
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
@@ -63,13 +66,9 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
             if (context is android.app.Activity) {
                 context.startActivityForResult(enableBtIntent, 1)
             }
-
         }
     }
 
-    //scanear e iniciar
-    //Ei, você está chamando algo que precisa de permissão, mas não verificou se o usuário já concedeu
-    //A partir do Android 12 (API 31), exigem permissão BLUETOOTH_SCAN em tempo de execução
     @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     fun startScan() {
         val context = getApplication<Application>().applicationContext
@@ -86,9 +85,6 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
         isScanning = true
     }
 
-
-
-    //para de scanear
     @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     fun stopScan() {
         val context = getApplication<Application>().applicationContext
@@ -104,7 +100,6 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-
     private fun hasScanPermission(context: Context): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             ContextCompat.checkSelfPermission(
@@ -114,7 +109,35 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
         } else true
     }
 
+    @SuppressLint("MissingPermission")
+    fun saveConnectedDevice(device: BluetoothDevice) {
+        val context = getApplication<Application>().applicationContext
+        BluetoothStorage.saveLastConnectedDevice(context, device.name, device.address)
+    }
 
+    fun tryReconnectLastDevice() {
+        val context = getApplication<Application>().applicationContext
+        val lastDeviceInfo = BluetoothStorage.getLastConnectedDevice(context)
+        val adapter = bluetoothAdapter ?: return
 
+        lastDeviceInfo?.let { (_, address) ->
+            val device = adapter.getRemoteDevice(address)
+
+            _isConnecting.value = true
+            Toast.makeText(context, "Tentando reconectar com ${device.name ?: "Desconhecido"}", Toast.LENGTH_SHORT).show()
+
+            // Simula um delay de conexão
+            viewModelScope.launch {
+                delay(6000) // espera 2 segundos
+
+                // Aqui você colocaria a lógica real de conexão BLE
+                _isConnecting.value = false
+
+                // Simulando que deu certo:
+                saveConnectedDevice(device)
+                Toast.makeText(context, "Reconectado com sucesso!", Toast.LENGTH_SHORT).show()
+            }
+
+        }
+    }
 }
-
