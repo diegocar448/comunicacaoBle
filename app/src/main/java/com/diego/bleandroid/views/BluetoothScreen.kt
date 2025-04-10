@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -25,21 +24,44 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 
+
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+
 @Composable
 fun BluetoothScreen(viewModel: BluetoothViewModel) {
     val context = LocalContext.current
     val devices by viewModel.devices.collectAsState()
 
+    // Launcher para solicitar permissões
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            viewModel.startScan()
+        }
+    }
+
 
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-//        Button(onClick = { viewModel.enableBluetooth(context) }) {
-//            Text("Ativar Bluetooth")
-//        }
         Spacer(modifier = Modifier.height(8.dp))
         Button(
             onClick = {
-                viewModel.startScan()
+                when {
+                    // Verifica se a permissão já foi concedida
+                    context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED -> {
+                        viewModel.startScan()
+                    }
+                    // Caso contrário, solicita a permissão
+                    else -> {
+                        permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                    }
+                }
             }
         ) {
             Text("Buscar Dispositivos")
@@ -59,14 +81,15 @@ fun BluetoothScreen(viewModel: BluetoothViewModel) {
                         .fillMaxWidth()
                         .padding(horizontal = 4.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFE0F7FA) // azulzinho suave 💙
+                        containerColor = Color(0xFFE0F7FA)
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = device.name ?: "Dispositivo Desconhecido",
-                            style = MaterialTheme.typography.titleMedium,
+                            //style = MaterialTheme.typography.titleMedium,
+                            color = Color.Gray,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(4.dp))
