@@ -38,6 +38,8 @@ fun BluetoothScreen(viewModel: BluetoothViewModel) {
     val context = LocalContext.current
     val devices by viewModel.devices.collectAsState()
     val isConnecting by viewModel.isConnecting.collectAsState()
+    val connectionStatus by viewModel.connectionStatus.collectAsState()
+
 
     LaunchedEffect(Unit) {
         viewModel.tryReconnectLastDevice()
@@ -65,7 +67,16 @@ fun BluetoothScreen(viewModel: BluetoothViewModel) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Reconectando...", modifier = Modifier.alignByBaseline())
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        // Mensagem de status
+        if (connectionStatus.isNotBlank()) {
+            Text(
+                text = connectionStatus,
+                modifier = Modifier.padding(vertical = 8.dp),
+                color = Color.DarkGray
+            )
         }
 
         // Botões de ação

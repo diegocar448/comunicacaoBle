@@ -5,7 +5,10 @@ import android.annotation.SuppressLint
 import android.app.Application
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothProfile
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
@@ -42,6 +45,10 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
 
     private val _isConnecting = MutableStateFlow(false)
     val isConnecting: StateFlow<Boolean> = _isConnecting
+
+    private val _connectionStatus = MutableStateFlow<String>("")
+    val connectionStatus: StateFlow<String> = _connectionStatus
+
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
@@ -145,19 +152,41 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
     fun connectToDevice(device: BluetoothDevice) {
         val context = getApplication<Application>().applicationContext
 
-        // Aqui você pode iniciar sua conexão BLE real futuramente
-        Toast.makeText(context, "Conectando com ${device.name ?: "Desconhecido"}", Toast.LENGTH_SHORT).show()
-
-        // Simula reconexão (ativa o isConnecting, se estiver usando)
         _isConnecting.value = true
+        _connectionStatus.value = "Conectando ao ${device.name ?: "desconhecido"}..."
 
-        // Simulação: espera 2s e finaliza
-        CoroutineScope(Dispatchers.Main).launch {
-            delay(2000) // simula o tempo de conexão
-            _isConnecting.value = false
-            saveConnectedDevice(device)
-            Toast.makeText(context, "Conectado com ${device.name ?: "Desconhecido"}", Toast.LENGTH_SHORT).show()
-        }
+        device.connectGatt(context, false, object : BluetoothGattCallback() {
+
+            override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
+                when (newState) {
+                    BluetoothProfile.STATE_CONNECTED -> {
+                        _connectionStatus.value = "Conectado a ${device.name}"
+                        _isConnecting.value = false
+                        saveConnectedDevice(device)
+                        gatt?.discoverServices() // Inicia descoberta dos serviços
+                    }
+                    BluetoothProfile.STATE_DISCONNECTED -> {
+                        _connectionStatus.value = "Desconectado de ${device.name}"
+                        _isConnecting.value = false
+                    }
+                    else -> {
+                        _connectionStatus.value = "Status desconhecido: $newState"
+                        _isConnecting.value = false
+                    }
+                }
+            }
+
+            override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
+                if (status == BluetoothGatt.GATT_SUCCESS) {
+                    _connectionStatus.value = "Serviços descobertos com sucesso!"
+                    // Aqui você pode navegar pelos serviços/características
+                } else {
+                    _connectionStatus.value = "Erro ao descobrir serviços"
+                }
+            }
+        })
+
+
     }
 
 
